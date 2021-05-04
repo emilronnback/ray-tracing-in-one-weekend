@@ -1,4 +1,5 @@
 //use std::fmt::format;
+use indicatif::ProgressBar;
 use lib::error::Error;
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -17,6 +18,7 @@ fn run() -> Result<(), Error> {
 
     write!(file, "P3\n{} {}\n255\n", image_width, image_height)?;
 
+    let progress_bar = ProgressBar::new(image_height);
     for j in (0..image_height).rev() {
         for i in 0..image_width {
             let r = i as f64 / (image_width - 1) as f64;
@@ -29,7 +31,9 @@ fn run() -> Result<(), Error> {
 
             write!(file, "{} {} {}\n", ir, ig, ib)?;
         }
+        progress_bar.inc(1);
     }
+    progress_bar.finish_with_message("Done!");
 
     Ok(())
 }
