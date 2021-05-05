@@ -1,5 +1,5 @@
 use std::fmt::{self, Display};
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 #[derive(Default, Debug, Copy, Clone, PartialEq)]
 pub struct Vec3 {
     pub x: f64,
@@ -63,6 +63,17 @@ impl Sub for Vec3 {
             x: self.x - other.x,
             y: self.y - other.y,
             z: self.z - other.z,
+        }
+    }
+}
+
+impl Neg for Vec3 {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Vec3 {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
         }
     }
 }
