@@ -1,7 +1,7 @@
 //use std::fmt::format;
 use indicatif::ProgressBar;
 use lib::error::Error;
-use lib::hittable::{HitRecord, Hittable};
+use lib::hittable::Hittable;
 use lib::hittable_list::HittableList;
 use lib::ray::Ray;
 use lib::sphere::Sphere;
@@ -65,11 +65,9 @@ fn run() -> Result<(), Error> {
     Ok(())
 }
 
-//fn ray_color(ray: &Ray, world: Box<dyn Hittable>) -> Vec3 {
 fn ray_color(ray: &Ray, world: &impl Hittable) -> Vec3 {
-    let mut hit_record = HitRecord::default();
-    if world.hit(ray, 0.0, std::f64::INFINITY, &mut hit_record) {
-        return 0.5 * (hit_record.normal + Vec3::new(0.0, 0.0, 0.0));
+    if let Some(hit) = world.hit(ray, 0.0, std::f64::INFINITY) {
+        return 0.5 * (hit.normal + Vec3::new(0.0, 0.0, 0.0));
     }
     let unit_direction = Vec3::unit_vector(ray.direction);
     let t = 0.5 * (unit_direction.y + 1.0);
