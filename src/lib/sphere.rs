@@ -2,7 +2,7 @@ use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 use crate::vec::Vec3;
 
-struct Sphere {
+pub struct Sphere {
     center: Vec3,
     radius: f64,
 }
