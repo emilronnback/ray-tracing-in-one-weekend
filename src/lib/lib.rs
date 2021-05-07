@@ -1,3 +1,4 @@
+pub mod camera;
 pub mod error;
 pub mod hittable;
 pub mod hittable_list;

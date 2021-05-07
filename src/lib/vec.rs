@@ -1,5 +1,5 @@
 use std::fmt::{self, Display};
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
 #[derive(Default, Debug, Copy, Clone, PartialEq)]
 pub struct Vec3 {
     pub x: f64,
@@ -46,6 +46,14 @@ impl Add for Vec3 {
             y: self.y + other.y,
             z: self.z + other.z,
         }
+    }
+}
+
+impl AddAssign for Vec3 {
+    fn add_assign(&mut self, other: Vec3) {
+        self.x += other.x;
+        self.y += other.y;
+        self.z += other.z;
     }
 }
 

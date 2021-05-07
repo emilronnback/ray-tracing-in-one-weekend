@@ -1,11 +1,13 @@
 //use std::fmt::format;
 use indicatif::ProgressBar;
+use lib::camera::Camera;
 use lib::error::Error;
 use lib::hittable::Hittable;
 use lib::hittable_list::HittableList;
 use lib::ray::Ray;
 use lib::sphere::Sphere;
 use lib::vec::Vec3;
+use rand;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 
@@ -17,23 +19,19 @@ fn main() {
 fn run() -> Result<(), Error> {
     // Image
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 600;
+    let image_width = 400;
     let image_height = (image_width as f64 / aspect_ratio) as i32;
+    let samples_per_pixel = 100;
 
     // World
     let mut world = HittableList::default();
     world.add(Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)));
     world.add(Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)));
-    // Camera
-    let viewport_height = 2.0;
-    let viewport_width = aspect_ratio * viewport_height;
-    let focal_length = 1.0;
 
-    let origin = Vec3::new(0.0, 0.0, 0.0);
-    let horizontal = Vec3::new(viewport_width, 0.0, 0.0);
-    let vertical = Vec3::new(0.0, viewport_height, 0.0);
-    let lower_left_corner =
-        origin - horizontal / 2.0 - vertical / 2.0 - Vec3::new(0.0, 0.0, focal_length);
+    // Camera
+    let camera = Camera::new();
+
+    // Render
 
     let file = File::create("out.ppm")?;
     let mut file = BufWriter::new(file);
@@ -42,21 +40,14 @@ fn run() -> Result<(), Error> {
     let progress_bar = ProgressBar::new(image_height as u64);
     for j in (0..image_height).rev() {
         for i in 0..image_width {
-            let u = i as f64 / (image_width - 1) as f64;
-            let v = j as f64 / (image_height - 1) as f64;
-            let ray = Ray::new(
-                origin,
-                lower_left_corner + u * horizontal + v * vertical - origin,
-            );
-            let pixel_color = ray_color(&ray, &world);
-
-            write!(
-                file,
-                "{} {} {}\n",
-                (255.999 * pixel_color.x) as u64,
-                (255.999 * pixel_color.y) as u64,
-                (255.999 * pixel_color.z) as u64
-            )?;
+            let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
+            for _ in 0..samples_per_pixel {
+                let u = (i as f64 + rand::random::<f64>()) / (image_width - 1) as f64;
+                let v = (j as f64 + rand::random::<f64>()) / (image_height - 1) as f64;
+                let ray = camera.get_ray(u, v);
+                pixel_color += ray_color(&ray, &world);
+            }
+            write_color(&mut file, pixel_color, samples_per_pixel)?;
         }
         progress_bar.inc(1);
     }
@@ -65,9 +56,26 @@ fn run() -> Result<(), Error> {
     Ok(())
 }
 
+fn write_color(
+    writer: &mut impl Write,
+    pixel_color: Vec3,
+    samples_per_pixel: i32,
+) -> Result<(), Error> {
+    let scale = 1.0 / samples_per_pixel as f64;
+    let color = pixel_color * scale;
+    write!(
+        writer,
+        "{} {} {}\n",
+        (256.0 * color.x.clamp(0.0, 0.999)) as u64,
+        (256.0 * color.y.clamp(0.0, 0.999)) as u64,
+        (256.0 * color.z.clamp(0.0, 0.999)) as u64,
+    )?;
+    Ok(())
+}
+
 fn ray_color(ray: &Ray, world: &impl Hittable) -> Vec3 {
     if let Some(hit) = world.hit(ray, 0.0, std::f64::INFINITY) {
-        return 0.5 * (hit.normal + Vec3::new(0.0, 0.0, 0.0));
+        return 0.5 * (hit.normal + Vec3::new(1.0, 1.0, 1.0));
     }
     let unit_direction = Vec3::unit_vector(ray.direction);
     let t = 0.5 * (unit_direction.y + 1.0);
