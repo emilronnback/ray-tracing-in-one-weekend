@@ -22,7 +22,7 @@ fn run() -> Result<(), Error> {
     let image_width = 400;
     let image_height = (image_width as f64 / aspect_ratio) as i32;
     let samples_per_pixel = 100;
-    let max_depth = 50;
+    let max_depth = 10;
 
     // World
     let mut world = HittableList::default();
@@ -62,8 +62,13 @@ fn write_color(
     pixel_color: Vec3,
     samples_per_pixel: i32,
 ) -> Result<(), Error> {
+    // Divide the color by the number of samples and gamma-correct for gamma=2.0.
     let scale = 1.0 / samples_per_pixel as f64;
-    let color = pixel_color * scale;
+    let mut color = pixel_color * scale;
+    color.x = color.x.sqrt();
+    color.y = color.y.sqrt();
+    color.z = color.z.sqrt();
+
     write!(
         writer,
         "{} {} {}\n",
