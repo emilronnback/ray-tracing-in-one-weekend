@@ -36,6 +36,10 @@ impl Vec3 {
         }
     }
 
+    pub fn random_unit_vector() -> Self {
+        Vec3::unit_vector(Vec3::random_in_unit_sphere())
+    }
+
     pub fn dot(a: Vec3, b: Vec3) -> f64 {
         a.x * b.x + a.y * b.y + a.z * b.z
     }

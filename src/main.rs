@@ -83,8 +83,8 @@ fn ray_color(ray: &Ray, world: &impl Hittable, depth: i32) -> Vec3 {
     if depth <= 0 {
         return Vec3::new(0.0, 0.0, 0.0);
     }
-    if let Some(hit) = world.hit(ray, 0.0, std::f64::INFINITY) {
-        let target = hit.point + hit.normal + Vec3::random_in_unit_sphere();
+    if let Some(hit) = world.hit(ray, 0.001, std::f64::INFINITY) {
+        let target = hit.point + hit.normal + Vec3::random_unit_vector();
         return 0.5 * ray_color(&Ray::new(hit.point, target - hit.point), world, depth - 1);
     }
     let unit_direction = Vec3::unit_vector(ray.direction);
