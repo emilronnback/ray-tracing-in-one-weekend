@@ -22,6 +22,7 @@ fn run() -> Result<(), Error> {
     let image_width = 400;
     let image_height = (image_width as f64 / aspect_ratio) as i32;
     let samples_per_pixel = 100;
+    let max_depth = 50;
 
     // World
     let mut world = HittableList::default();
@@ -45,7 +46,7 @@ fn run() -> Result<(), Error> {
                 let u = (i as f64 + rand::random::<f64>()) / (image_width - 1) as f64;
                 let v = (j as f64 + rand::random::<f64>()) / (image_height - 1) as f64;
                 let ray = camera.get_ray(u, v);
-                pixel_color += ray_color(&ray, &world);
+                pixel_color += ray_color(&ray, &world, max_depth);
             }
             write_color(&mut file, pixel_color, samples_per_pixel)?;
         }
@@ -73,9 +74,13 @@ fn write_color(
     Ok(())
 }
 
-fn ray_color(ray: &Ray, world: &impl Hittable) -> Vec3 {
+fn ray_color(ray: &Ray, world: &impl Hittable, depth: i32) -> Vec3 {
+    if depth <= 0 {
+        return Vec3::new(0.0, 0.0, 0.0);
+    }
     if let Some(hit) = world.hit(ray, 0.0, std::f64::INFINITY) {
-        return 0.5 * (hit.normal + Vec3::new(1.0, 1.0, 1.0));
+        let target = hit.point + hit.normal + Vec3::random_in_unit_sphere();
+        return 0.5 * ray_color(&Ray::new(hit.point, target - hit.point), world, depth - 1);
     }
     let unit_direction = Vec3::unit_vector(ray.direction);
     let t = 0.5 * (unit_direction.y + 1.0);
