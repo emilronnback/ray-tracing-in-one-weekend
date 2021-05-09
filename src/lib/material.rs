@@ -38,7 +38,7 @@ impl Metal {
     pub fn new(albedo: Vec3, fuzz: f64) -> Self {
         Metal {
             albedo,
-            fuzz: if fuzz < 1.0 { 1.0 } else { fuzz },
+            fuzz: if fuzz < 1.0 { fuzz } else { 1.0 },
         }
     }
 }
@@ -67,6 +67,11 @@ impl Dielectric {
     pub fn new(ir: f64) -> Self {
         Dielectric { ir }
     }
+
+    fn reflectance(cosine: f64, reflection_index: f64) -> f64 {
+        let r0 = ((1.0 - reflection_index) / (1.0 + reflection_index)).powi(2);
+        r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+    }
 }
 
 impl Material for Dielectric {
@@ -78,8 +83,20 @@ impl Material for Dielectric {
             self.ir
         };
         let unit_direction = Vec3::unit_vector(ray.direction);
-        let refracted = Vec3::refract(&unit_direction, &hit_record.normal, refraction_ratio);
-        let scattered = Ray::new(hit_record.point, refracted);
+        let cos_theta = Vec3::dot(&-unit_direction, &hit_record.normal).min(1.0);
+        let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
+
+        let cannot_refract = refraction_ratio * sin_theta > 1.0;
+
+        let direction = if cannot_refract
+            || Self::reflectance(cos_theta, refraction_ratio) > rand::random::<f64>()
+        {
+            Vec3::reflect(&unit_direction, &hit_record.normal)
+        } else {
+            Vec3::refract(&unit_direction, &hit_record.normal, refraction_ratio)
+        };
+
+        let scattered = Ray::new(hit_record.point, direction);
         Some((attenuation, scattered))
     }
 }
