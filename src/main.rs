@@ -4,6 +4,7 @@ use lib::camera::Camera;
 use lib::error::Error;
 use lib::hittable::Hittable;
 use lib::hittable_list::HittableList;
+use lib::material::{Lambertian, Metal};
 use lib::ray::Ray;
 use lib::sphere::Sphere;
 use lib::vec::Vec3;
@@ -25,10 +26,23 @@ fn run() -> Result<(), Error> {
     let max_depth = 10;
 
     // World
-    let mut world = HittableList::default();
-    world.add(Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)));
-    world.add(Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)));
 
+    let material_ground = Lambertian::new(0.8, 0.8, 0.0);
+    let material_center = Lambertian::new(0.7, 0.3, 0.3);
+    let material_left = Metal::new(0.8, 0.8, 0.8);
+    let material_right = Metal::new(0.8, 0.6, 0.2);
+
+    let mut world = HittableList::default();
+
+    let ground_sphere = Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0, &material_ground);
+    world.add(&ground_sphere);
+
+    let center_sphere = Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5, &material_center);
+    world.add(&center_sphere);
+    let left_sphere = Sphere::new(Vec3::new(-1.0, 0.0, -1.0), 0.5, &material_left);
+    world.add(&left_sphere);
+    let right_sphere = Sphere::new(Vec3::new(1.0, 0.0, -1.0), 0.5, &material_right);
+    world.add(&right_sphere);
     // Camera
     let camera = Camera::new();
 
@@ -84,9 +98,15 @@ fn ray_color(ray: &Ray, world: &impl Hittable, depth: i32) -> Vec3 {
         return Vec3::new(0.0, 0.0, 0.0);
     }
     if let Some(hit) = world.hit(ray, 0.001, std::f64::INFINITY) {
-        let target = hit.point + hit.normal + Vec3::random_unit_vector();
-        return 0.5 * ray_color(&Ray::new(hit.point, target - hit.point), world, depth - 1);
+        if let Some((attenuation, scattered)) = hit.material.scatter(ray, &hit) {
+            return attenuation * ray_color(&scattered, world, depth - 1);
+        } else {
+            return Vec3::new(0.0, 0.0, 0.0);
+        }
+        // let target = hit.point + hit.normal + Vec3::random_unit_vector();
+        // return 0.5 * ray_color(&Ray::new(hit.point, target - hit.point), world, depth - 1);
     }
+
     let unit_direction = Vec3::unit_vector(ray.direction);
     let t = 0.5 * (unit_direction.y + 1.0);
     (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)

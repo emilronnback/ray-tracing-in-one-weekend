@@ -40,7 +40,7 @@ impl Vec3 {
         Vec3::unit_vector(Vec3::random_in_unit_sphere())
     }
 
-    pub fn dot(a: Vec3, b: Vec3) -> f64 {
+    pub fn dot(a: &Vec3, b: &Vec3) -> f64 {
         a.x * b.x + a.y * b.y + a.z * b.z
     }
 
@@ -62,6 +62,14 @@ impl Vec3 {
 
     pub fn length_squared(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
+    }
+    pub fn near_zero(&self) -> bool {
+        let s = 1.0e-8;
+        self.x.abs() < s && self.y.abs() < s && self.z.abs() < s
+    }
+
+    pub fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
+        *v - 2.0 * Vec3::dot(v, n) * *n
     }
 }
 
