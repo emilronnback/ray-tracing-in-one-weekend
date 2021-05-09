@@ -26,13 +26,11 @@ fn run() -> Result<(), Error> {
     let max_depth = 10;
 
     // World
-
+    let mut world = HittableList::default();
     let material_ground = Lambertian::new(Vec3::new(0.8, 0.8, 0.0));
     let material_center = Lambertian::new(Vec3::new(0.1, 0.2, 0.5));
     let material_left = Dielectric::new(1.5);
     let material_right = Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.0);
-
-    let mut world = HittableList::default();
 
     let ground_sphere = Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0, &material_ground);
     world.add(&ground_sphere);
@@ -46,7 +44,20 @@ fn run() -> Result<(), Error> {
     let right_sphere = Sphere::new(Vec3::new(1.0, 0.0, -1.0), 0.5, &material_right);
     world.add(&right_sphere);
     // Camera
-    let camera = Camera::new();
+    let look_from = Vec3::new(3.0, 3.0, 2.0);
+    let look_at = Vec3::new(0.0, 0.0, -1.0);
+    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let distance_to_focus = (look_from - look_at).length();
+    let aperture = 2.0;
+    let camera = Camera::new(
+        look_from,
+        look_at,
+        vup,
+        20.0,
+        aspect_ratio,
+        aperture,
+        distance_to_focus,
+    );
 
     // Render
 
