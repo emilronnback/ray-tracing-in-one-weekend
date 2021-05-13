@@ -3,30 +3,27 @@ use crate::ray::Ray;
 use std::vec::Vec;
 
 #[derive(Default)]
-pub struct HittableList<'a> {
-    //objects: Vec<Box<dyn Hittable>>,
-    objects: Vec<&'a dyn Hittable>,
+pub struct HittableList {
+    objects: Vec<Box<dyn Hittable>>,
 }
 
-impl<'a> HittableList<'a> {
-    pub fn new(object: &'a dyn Hittable) -> Self {
-        let mut list = HittableList {
+impl HittableList {
+    pub fn new() -> Self {
+        HittableList {
             objects: Vec::new(),
-        };
-        list.add(object);
-        list
+        }
     }
 
     pub fn clear(&mut self) {
         self.objects.clear();
     }
 
-    pub fn add(&mut self, object: &'a dyn Hittable) {
+    pub fn add(&mut self, object: Box<dyn Hittable>) {
         self.objects.push(object);
     }
 }
 
-impl<'a> Hittable for HittableList<'a> {
+impl Hittable for HittableList {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut hit_record: Option<HitRecord> = None;
         let mut closest_so_far = t_max;
