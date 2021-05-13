@@ -24,7 +24,7 @@ impl Vec3 {
     }
 
     pub fn random() -> Self {
-        Vec3::random_range(f64::MIN, f64::MAX)
+        Vec3::random_range(0.0, 1.0)
     }
 
     pub fn random_in_unit_sphere() -> Self {
