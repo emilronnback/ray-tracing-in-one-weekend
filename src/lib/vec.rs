@@ -235,7 +235,7 @@ mod tests {
     fn dot() {
         let v1 = Vec3::new(1.0, 2.0, 3.0);
         let v2 = Vec3::new(4.0, 5.0, 6.0);
-        assert_eq!(Vec3::dot(v1, v2), 32.0);
+        assert_eq!(Vec3::dot(&v1, &v2), 32.0);
     }
 
     #[test]

@@ -4,27 +4,52 @@ use lib::camera::Camera;
 use lib::error::Error;
 use lib::hittable::Hittable;
 use lib::hittable_list::HittableList;
+use lib::job::Job;
 use lib::material::{Dielectric, Lambertian, Metal};
 use lib::ray::Ray;
 use lib::sphere::Sphere;
 use lib::vec::Vec3;
 use rand;
 use rand::Rng;
+use rayon::prelude::*;
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use std::rc::Rc;
+use std::sync::Arc;
+use std::vec::Vec;
 
 fn main() {
     if let Err(e) = run() {
-        println!("{}", e);
+        println!("ERROR: {}", e);
     }
 }
+
+struct Outcome {
+    pixels: Vec<Pixel>,
+}
+impl Outcome {
+    fn new() -> Outcome {
+        Outcome { pixels: Vec::new() }
+    }
+}
+
+struct Pixel {
+    x: u32,
+    y: u32,
+    color: Vec3,
+}
+
+impl Pixel {
+    fn new(color: Vec3) -> Pixel {
+        Pixel { x: 0, y: 0, color }
+    }
+}
+
 fn run() -> Result<(), Error> {
     // Image
     let aspect_ratio = 3.0 / 2.0;
-    let image_width = 1200;
-    let image_height = (image_width as f64 / aspect_ratio) as i32;
-    let samples_per_pixel = 500;
+    let image_width = 450;
+    let image_height = (image_width as f64 / aspect_ratio) as usize;
+    let samples_per_pixel = 100;
     let max_depth = 50;
 
     // World
@@ -51,24 +76,83 @@ fn run() -> Result<(), Error> {
     let file = File::create("out.ppm")?;
     let mut file = BufWriter::new(file);
     write!(file, "P3\n{} {}\n255\n", image_width, image_height)?;
+    let jobs = lib::job::create_jobs(image_height, image_width);
+    let outcome: Vec<Outcome> = jobs
+        //        .par_iter()
+        .par_iter()
+        .map(|j| {
+            work(
+                j,
+                &world,
+                samples_per_pixel,
+                max_depth,
+                image_width,
+                image_height,
+                &camera,
+            )
+        })
+        .collect();
+    let mut outcomes = 0;
+    let mut writes = 0;
+    for o in outcome {
+        outcomes += 1;
+        for p in o.pixels {
+            writes += 1;
+            write_color(&mut file, p.color, samples_per_pixel)?;
+        }
+    }
+    println!("outcomes: {}, writes: {}", outcomes, writes);
+    // Create jobs {
+    //for j in (0..image_height).rev() {
+    //   for i in 0..image_width {
 
-    let progress_bar = ProgressBar::new(image_height as u64);
-    for j in (0..image_height).rev() {
-        for i in 0..image_width {
+    // }
+    /*let progress_bar = ProgressBar::new(image_height as u64);
+        for j in (0..image_height).rev() {
+            for i in 0..image_width {
+                let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
+                for _ in 0..samples_per_pixel {
+                    let u = (i as f64 + rand::random::<f64>()) / (image_width - 1) as f64;
+                    let v = (j as f64 + rand::random::<f64>()) / (image_height - 1) as f64;
+                    let ray = camera.get_ray(u, v);
+                    pixel_color += ray_color(&ray, &world, max_depth);
+                }
+                write_color(&mut file, pixel_color, samples_per_pixel)?;
+            }
+            progress_bar.inc(1);
+        }
+        progress_bar.finish_with_message("Done!");
+    */
+    let pixel_color = Vec3::random();
+    write_color(&mut file, pixel_color, samples_per_pixel)?;
+    Ok(())
+}
+
+fn work(
+    job: &Job,
+    world: &HittableList,
+    samples_per_pixel: i32,
+    max_depth: i32,
+    image_width: usize,
+    image_height: usize,
+    camera: &Camera,
+) -> Outcome {
+    let mut outcome = Outcome::new();
+    let height_range = job.height_range.clone();
+    for j in height_range.rev() {
+        let width_range = job.width_range.clone();
+        for i in width_range {
             let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
             for _ in 0..samples_per_pixel {
                 let u = (i as f64 + rand::random::<f64>()) / (image_width - 1) as f64;
                 let v = (j as f64 + rand::random::<f64>()) / (image_height - 1) as f64;
                 let ray = camera.get_ray(u, v);
-                pixel_color += ray_color(&ray, &world, max_depth);
+                pixel_color += ray_color(&ray, &*world, max_depth);
             }
-            write_color(&mut file, pixel_color, samples_per_pixel)?;
+            outcome.pixels.push(Pixel::new(pixel_color));
         }
-        progress_bar.inc(1);
     }
-    progress_bar.finish_with_message("Done!");
-
-    Ok(())
+    outcome
 }
 
 fn write_color(
@@ -112,10 +196,10 @@ fn ray_color(ray: &Ray, world: &impl Hittable, depth: i32) -> Vec3 {
 #[allow(dead_code)]
 fn scene1() -> HittableList {
     let mut world = HittableList::new();
-    let material_ground = Rc::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0)));
-    let material_center = Rc::new(Lambertian::new(Vec3::new(0.1, 0.2, 0.5)));
-    let material_left = Rc::new(Dielectric::new(1.5));
-    let material_right = Rc::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.0));
+    let material_ground = Arc::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0)));
+    let material_center = Arc::new(Lambertian::new(Vec3::new(0.1, 0.2, 0.5)));
+    let material_left = Arc::new(Dielectric::new(1.5));
+    let material_right = Arc::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.0));
 
     let ground_sphere = Box::new(Sphere::new(
         Vec3::new(0.0, -100.5, -1.0),
@@ -135,7 +219,7 @@ fn scene1() -> HittableList {
 
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
-    let material_ground = Rc::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5)));
+    let material_ground = Arc::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5)));
     let ground_sphere = Box::new(Sphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -155,38 +239,38 @@ fn random_scene() -> HittableList {
                 if material_choise < 0.8 {
                     //diffuse
                     let albedo = Vec3::random() * Vec3::random();
-                    let material_sphere = Rc::new(Lambertian::new(albedo));
+                    let material_sphere = Arc::new(Lambertian::new(albedo));
                     world.add(Box::new(Sphere::new(center, 0.2, material_sphere)));
                 } else if material_choise < 0.95 {
                     //metal
                     let albedo = Vec3::random_range(0.5, 1.0);
                     let fuzz = rng.gen_range(0.5..1.0);
-                    let material_sphere = Rc::new(Metal::new(albedo, fuzz));
+                    let material_sphere = Arc::new(Metal::new(albedo, fuzz));
                     world.add(Box::new(Sphere::new(center, 0.2, material_sphere)));
                 } else {
                     //glass
-                    let material_sphere = Rc::new(Dielectric::new(1.5));
+                    let material_sphere = Arc::new(Dielectric::new(1.5));
                     world.add(Box::new(Sphere::new(center, 0.2, material_sphere)));
                 }
             }
         }
     }
 
-    let material1 = Rc::new(Dielectric::new(1.5));
+    let material1 = Arc::new(Dielectric::new(1.5));
     world.add(Box::new(Sphere::new(
         Vec3::new(0.0, 1.0, 0.0),
         1.0,
         material1,
     )));
 
-    let material2 = Rc::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1)));
+    let material2 = Arc::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1)));
     world.add(Box::new(Sphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
         material2,
     )));
 
-    let material3 = Rc::new(Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0));
+    let material3 = Arc::new(Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0));
     world.add(Box::new(Sphere::new(
         Vec3::new(4.0, 1.0, 0.0),
         1.0,
