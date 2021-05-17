@@ -46,8 +46,8 @@ impl Pixel {
 
 fn run() -> Result<(), Error> {
     // Image
-    let aspect_ratio = 3.0 / 2.0;
-    let image_width = 450;
+    let aspect_ratio = 16.0 / 9.0;
+    let image_width = 400;
     let image_height = (image_width as f64 / aspect_ratio) as usize;
     let samples_per_pixel = 100;
     let max_depth = 50;
@@ -69,6 +69,8 @@ fn run() -> Result<(), Error> {
         aspect_ratio,
         aperture,
         distance_to_focus,
+        0.0,
+        1.0,
     );
 
     // Render
@@ -77,10 +79,12 @@ fn run() -> Result<(), Error> {
     let mut file = BufWriter::new(file);
     write!(file, "P3\n{} {}\n255\n", image_width, image_height)?;
     let jobs = lib::job::create_jobs(image_height, image_width);
+    let progress_bar = ProgressBar::new(image_height as u64);
     let outcome: Vec<Outcome> = jobs
         //        .par_iter()
         .par_iter()
         .map(|j| {
+            progress_bar.inc(1);
             work(
                 j,
                 &world,
@@ -101,28 +105,8 @@ fn run() -> Result<(), Error> {
             write_color(&mut file, p.color, samples_per_pixel)?;
         }
     }
+    progress_bar.finish_with_message("Done!");
     println!("outcomes: {}, writes: {}", outcomes, writes);
-    // Create jobs {
-    //for j in (0..image_height).rev() {
-    //   for i in 0..image_width {
-
-    // }
-    /*let progress_bar = ProgressBar::new(image_height as u64);
-        for j in (0..image_height).rev() {
-            for i in 0..image_width {
-                let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
-                for _ in 0..samples_per_pixel {
-                    let u = (i as f64 + rand::random::<f64>()) / (image_width - 1) as f64;
-                    let v = (j as f64 + rand::random::<f64>()) / (image_height - 1) as f64;
-                    let ray = camera.get_ray(u, v);
-                    pixel_color += ray_color(&ray, &world, max_depth);
-                }
-                write_color(&mut file, pixel_color, samples_per_pixel)?;
-            }
-            progress_bar.inc(1);
-        }
-        progress_bar.finish_with_message("Done!");
-    */
     let pixel_color = Vec3::random();
     write_color(&mut file, pixel_color, samples_per_pixel)?;
     Ok(())
@@ -147,7 +131,9 @@ fn work(
                 let u = (i as f64 + rand::random::<f64>()) / (image_width - 1) as f64;
                 let v = (j as f64 + rand::random::<f64>()) / (image_height - 1) as f64;
                 let ray = camera.get_ray(u, v);
-                pixel_color += ray_color(&ray, &*world, max_depth);
+                let color = ray_color(&ray, &*world, max_depth);
+                //                println!("color: {}", color);
+                pixel_color += color;
             }
             outcome.pixels.push(Pixel::new(pixel_color));
         }
@@ -240,7 +226,15 @@ fn random_scene() -> HittableList {
                     //diffuse
                     let albedo = Vec3::random() * Vec3::random();
                     let material_sphere = Arc::new(Lambertian::new(albedo));
-                    world.add(Box::new(Sphere::new(center, 0.2, material_sphere)));
+                    let center_end = center + Vec3::new(0.0, rng.gen_range(0.0..0.5), 0.0);
+                    world.add(Box::new(Sphere::new_moving(
+                        center,
+                        center_end,
+                        0.2,
+                        0.0,
+                        1.0,
+                        material_sphere,
+                    )));
                 } else if material_choise < 0.95 {
                     //metal
                     let albedo = Vec3::random_range(0.5, 1.0);

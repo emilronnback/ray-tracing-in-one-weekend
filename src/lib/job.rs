@@ -22,19 +22,8 @@ pub fn create_jobs(height: usize, width: usize) -> Vec<Job> {
         let end = *s.last().unwrap() + 1;
         start..end
     });
-    /*
-    let width = (0..width).collect::<Vec<_>>();
-    let width_chunks = width.chunks(width_size).map(|s| {
-        let start = *s.first().unwrap();
-        let end = *s.last().unwrap();
-        start..end
-    });
-    */
     for h in height_chunks.rev() {
-        //       let width_chunks = width_chunks.clone();
-        //       for w in width_chunks {
         jobs.push(Job::new(h.clone(), 0..width));
-        //      }
     }
     jobs
 }

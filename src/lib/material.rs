@@ -16,12 +16,12 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _ray: &Ray, hit_record: &HitRecord) -> Option<(Vec3, Ray)> {
+    fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Vec3, Ray)> {
         let mut scatter_direction = hit_record.normal + Vec3::random_unit_vector();
         if scatter_direction.near_zero() {
             scatter_direction = hit_record.normal;
         }
-        let scattered = Ray::new(hit_record.point, scatter_direction);
+        let scattered = Ray::new_at_time(hit_record.point, scatter_direction, ray.time);
         let attenuation = self.albedo;
 
         Some((attenuation, scattered))
@@ -46,9 +46,10 @@ impl Metal {
 impl Material for Metal {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Vec3, Ray)> {
         let reflected = Vec3::reflect(&Vec3::unit_vector(ray.direction), &hit_record.normal);
-        let scattered = Ray::new(
+        let scattered = Ray::new_at_time(
             hit_record.point,
             reflected + self.fuzz * Vec3::random_in_unit_sphere(),
+            ray.time,
         );
         let attenuation = self.albedo;
         if Vec3::dot(&scattered.direction, &hit_record.normal) > 0.0 {
@@ -96,7 +97,7 @@ impl Material for Dielectric {
             Vec3::refract(&unit_direction, &hit_record.normal, refraction_ratio)
         };
 
-        let scattered = Ray::new(hit_record.point, direction);
+        let scattered = Ray::new_at_time(hit_record.point, direction, ray.time);
         Some((attenuation, scattered))
     }
 }
