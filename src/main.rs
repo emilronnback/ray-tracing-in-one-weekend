@@ -187,18 +187,18 @@ fn scene1() -> HittableList {
     let material_left = Arc::new(Dielectric::new(1.5));
     let material_right = Arc::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.0));
 
-    let ground_sphere = Box::new(Sphere::new(
+    let ground_sphere = Arc::new(Sphere::new(
         Vec3::new(0.0, -100.5, -1.0),
         100.0,
         material_ground,
     ));
     world.add(ground_sphere);
 
-    let center_sphere = Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5, material_center));
+    let center_sphere = Arc::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5, material_center));
     world.add(center_sphere);
-    let left_sphere = Box::new(Sphere::new(Vec3::new(-1.0, 0.0, -1.0), 0.5, material_left));
+    let left_sphere = Arc::new(Sphere::new(Vec3::new(-1.0, 0.0, -1.0), 0.5, material_left));
     world.add(left_sphere);
-    let right_sphere = Box::new(Sphere::new(Vec3::new(1.0, 0.0, -1.0), 0.5, material_right));
+    let right_sphere = Arc::new(Sphere::new(Vec3::new(1.0, 0.0, -1.0), 0.5, material_right));
     world.add(right_sphere);
     world
 }
@@ -206,7 +206,7 @@ fn scene1() -> HittableList {
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
     let material_ground = Arc::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5)));
-    let ground_sphere = Box::new(Sphere::new(
+    let ground_sphere = Arc::new(Sphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
         material_ground,
@@ -227,7 +227,7 @@ fn random_scene() -> HittableList {
                     let albedo = Vec3::random() * Vec3::random();
                     let material_sphere = Arc::new(Lambertian::new(albedo));
                     let center_end = center + Vec3::new(0.0, rng.gen_range(0.0..0.5), 0.0);
-                    world.add(Box::new(Sphere::new_moving(
+                    world.add(Arc::new(Sphere::new_moving(
                         center,
                         center_end,
                         0.2,
@@ -240,32 +240,32 @@ fn random_scene() -> HittableList {
                     let albedo = Vec3::random_range(0.5, 1.0);
                     let fuzz = rng.gen_range(0.5..1.0);
                     let material_sphere = Arc::new(Metal::new(albedo, fuzz));
-                    world.add(Box::new(Sphere::new(center, 0.2, material_sphere)));
+                    world.add(Arc::new(Sphere::new(center, 0.2, material_sphere)));
                 } else {
                     //glass
                     let material_sphere = Arc::new(Dielectric::new(1.5));
-                    world.add(Box::new(Sphere::new(center, 0.2, material_sphere)));
+                    world.add(Arc::new(Sphere::new(center, 0.2, material_sphere)));
                 }
             }
         }
     }
 
     let material1 = Arc::new(Dielectric::new(1.5));
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Vec3::new(0.0, 1.0, 0.0),
         1.0,
         material1,
     )));
 
     let material2 = Arc::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1)));
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
         material2,
     )));
 
     let material3 = Arc::new(Metal::new(Vec3::new(0.7, 0.6, 0.5), 0.0));
-    world.add(Box::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Vec3::new(4.0, 1.0, 0.0),
         1.0,
         material3,

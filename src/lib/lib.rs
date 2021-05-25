@@ -1,3 +1,5 @@
+pub mod aabb;
+pub mod bvh_node;
 pub mod camera;
 pub mod error;
 pub mod hittable;

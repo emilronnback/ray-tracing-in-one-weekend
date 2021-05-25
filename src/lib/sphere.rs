@@ -1,3 +1,4 @@
+use crate::aabb::AABB;
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
@@ -49,7 +50,7 @@ impl Sphere {
     }
 }
 
-impl<'a> Hittable for Sphere {
+impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let oc = ray.origin - self.center(ray.time);
         let a = ray.direction.length_squared();
@@ -76,5 +77,16 @@ impl<'a> Hittable for Sphere {
         let outward_normal = (hit_record.point - self.center(ray.time)) / self.radius;
         hit_record.set_face_normal(ray, &outward_normal);
         Some(hit_record)
+    }
+    fn bounding_box(&self, time_start: f64, time_end: f64) -> Option<AABB> {
+        let box_start = AABB::new(
+            self.center_start - Vec3::new(self.radius, self.radius, self.radius),
+            self.center_start + Vec3::new(self.radius, self.radius, self.radius),
+        );
+        let box_end = AABB::new(
+            self.center_start - Vec3::new(self.radius, self.radius, self.radius),
+            self.center_start + Vec3::new(self.radius, self.radius, self.radius),
+        );
+        Some(AABB::surrounding_box(&box_start, &box_end))
     }
 }
