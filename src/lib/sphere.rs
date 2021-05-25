@@ -3,6 +3,7 @@ use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec::Vec3;
+use std::f64::consts::PI;
 use std::sync::Arc;
 
 pub struct Sphere {
@@ -48,6 +49,23 @@ impl Sphere {
             + ((time - self.time_start) / (self.time_end - self.time_start))
                 * (self.center_end - self.center_start)
     }
+
+    /// returns u,v-coordinates, given a point on a sphere of radius one, centered at the origin.
+    /// p: point on a sphere
+    ///
+    /// u: return value [0.0, 1.0], angle around Y axis from X=-1
+    /// v: return value [0.0, 1.0], angle from Y=-1 to Y=+1
+    /// # Examples
+    /// ``` rust
+    /// let (u, v) = Sphere::get_sphere_uv(&Vec3::new(1.0, 0.0, 0.0));
+    /// assert_eq!((u, v), (0.0, 0.5));
+    /// ```
+    pub fn get_sphere_uv(p: &Vec3) -> (f64, f64) {
+        let theta = (-p.y).acos();
+        let phi = (-p.z).atan2(p.x) + PI;
+
+        (phi / (2.0 * PI), theta / PI)
+    }
 }
 
 impl Hittable for Sphere {
@@ -76,6 +94,7 @@ impl Hittable for Sphere {
         hit_record.point = ray.at(hit_record.t);
         let outward_normal = (hit_record.point - self.center(ray.time)) / self.radius;
         hit_record.set_face_normal(ray, &outward_normal);
+        (hit_record.u, hit_record.v) = Sphere::get_sphere_uv(&outward_normal);
         Some(hit_record)
     }
     fn bounding_box(&self, time_start: f64, time_end: f64) -> Option<AABB> {

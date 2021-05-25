@@ -1,5 +1,6 @@
 //use std::fmt::format;
 use indicatif::ProgressBar;
+use lib::bvh_node::BVHNode;
 use lib::camera::Camera;
 use lib::error::Error;
 use lib::hittable::Hittable;
@@ -8,6 +9,7 @@ use lib::job::Job;
 use lib::material::{Dielectric, Lambertian, Metal};
 use lib::ray::Ray;
 use lib::sphere::Sphere;
+use lib::texture::{CheckerTexture, NoiseTexture};
 use lib::vec::Vec3;
 use rand;
 use rand::Rng;
@@ -53,19 +55,42 @@ fn run() -> Result<(), Error> {
     let max_depth = 50;
 
     // World
-    //let mut world = HittableList::default();
-    let world = random_scene();
+    let world: HittableList;
+    let look_from: Vec3;
+    let look_at: Vec3;
+    let vfov: f64;
+
+    match 0 {
+        1 => {
+            world = random_scene();
+            look_from = Vec3::new(13.0, 2.0, 3.0);
+            look_at = Vec3::new(0.0, 0.0, 0.0);
+            vfov = 20.0;
+        }
+        2 => {
+            world = two_spheres();
+            look_from = Vec3::new(13.0, 2.0, 3.0);
+            look_at = Vec3::new(0.0, 0.0, 0.0);
+            vfov = 20.0;
+        }
+        _ => {
+            world = two_perlin_spheres();
+            look_from = Vec3::new(13.0, 2.0, 3.0);
+            look_at = Vec3::new(0.0, 0.0, 0.0);
+            vfov = 20.0;
+        }
+    }
+
     // Camera
-    let look_from = Vec3::new(13.0, 2.0, 3.0);
-    let look_at = Vec3::new(0.0, 0.0, 0.0);
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let distance_to_focus = 10.0;
-    let aperture = 0.1;
+    let aperture = 0.0;
+
     let camera = Camera::new(
         look_from,
         look_at,
         vup,
-        20.0,
+        vfov,
         aspect_ratio,
         aperture,
         distance_to_focus,
@@ -182,8 +207,9 @@ fn ray_color(ray: &Ray, world: &impl Hittable, depth: i32) -> Vec3 {
 #[allow(dead_code)]
 fn scene1() -> HittableList {
     let mut world = HittableList::new();
-    let material_ground = Arc::new(Lambertian::new(Vec3::new(0.8, 0.8, 0.0)));
-    let material_center = Arc::new(Lambertian::new(Vec3::new(0.1, 0.2, 0.5)));
+
+    let material_ground = Arc::new(Lambertian::new_color(Vec3::new(0.8, 0.8, 0.0)));
+    let material_center = Arc::new(Lambertian::new_color(Vec3::new(0.1, 0.2, 0.5)));
     let material_left = Arc::new(Dielectric::new(1.5));
     let material_right = Arc::new(Metal::new(Vec3::new(0.8, 0.6, 0.2), 0.0));
 
@@ -194,22 +220,29 @@ fn scene1() -> HittableList {
     ));
     world.add(ground_sphere);
 
+    let mut big_spheres = HittableList::new();
     let center_sphere = Arc::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5, material_center));
-    world.add(center_sphere);
+    big_spheres.add(center_sphere);
     let left_sphere = Arc::new(Sphere::new(Vec3::new(-1.0, 0.0, -1.0), 0.5, material_left));
-    world.add(left_sphere);
+    big_spheres.add(left_sphere);
     let right_sphere = Arc::new(Sphere::new(Vec3::new(1.0, 0.0, -1.0), 0.5, material_right));
-    world.add(right_sphere);
+    big_spheres.add(right_sphere);
+    let bvh_node = Arc::new(BVHNode::new_hittablelist(&big_spheres, 0.0, 1.1));
+    world.add(bvh_node);
     world
 }
 
 fn random_scene() -> HittableList {
     let mut world = HittableList::new();
-    let material_ground = Arc::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5)));
+    let checker = Arc::new(CheckerTexture::new_color(
+        Vec3::new(0.2, 0.3, 0.1),
+        Vec3::new(0.9, 0.9, 0.9),
+    ));
+    //    let material_ground = Arc::new(Lambertian::new(Vec3::new(0.5, 0.5, 0.5)));
     let ground_sphere = Arc::new(Sphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
-        material_ground,
+        Arc::new(Lambertian::new_texture(checker)),
     ));
     world.add(ground_sphere);
     let mut rng = rand::thread_rng();
@@ -225,7 +258,7 @@ fn random_scene() -> HittableList {
                 if material_choise < 0.8 {
                     //diffuse
                     let albedo = Vec3::random() * Vec3::random();
-                    let material_sphere = Arc::new(Lambertian::new(albedo));
+                    let material_sphere = Arc::new(Lambertian::new_color(albedo));
                     let center_end = center + Vec3::new(0.0, rng.gen_range(0.0..0.5), 0.0);
                     world.add(Arc::new(Sphere::new_moving(
                         center,
@@ -257,7 +290,7 @@ fn random_scene() -> HittableList {
         material1,
     )));
 
-    let material2 = Arc::new(Lambertian::new(Vec3::new(0.4, 0.2, 0.1)));
+    let material2 = Arc::new(Lambertian::new_color(Vec3::new(0.4, 0.2, 0.1)));
     world.add(Arc::new(Sphere::new(
         Vec3::new(-4.0, 1.0, 0.0),
         1.0,
@@ -272,4 +305,46 @@ fn random_scene() -> HittableList {
     )));
 
     world
+}
+
+fn two_spheres() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let checker = Arc::new(CheckerTexture::new_color(
+        Vec3::new(0.2, 0.3, 0.1),
+        Vec3::new(0.9, 0.9, 0.9),
+    ));
+
+    objects.add(Arc::new(Sphere::new(
+        Vec3::new(0.0, -10.0, 0.0),
+        1000.0,
+        Arc::new(Lambertian::new_texture(checker.clone())),
+    )));
+
+    objects.add(Arc::new(Sphere::new(
+        Vec3::new(0.0, 10.0, 0.0),
+        10.0,
+        Arc::new(Lambertian::new_texture(checker)),
+    )));
+
+    objects
+}
+
+fn two_perlin_spheres() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let perlin_texture = Arc::new(NoiseTexture::new());
+    objects.add(Arc::new(Sphere::new(
+        Vec3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Arc::new(Lambertian::new_texture(perlin_texture.clone())),
+    )));
+
+    objects.add(Arc::new(Sphere::new(
+        Vec3::new(0.0, 2.0, 0.0),
+        2.0,
+        Arc::new(Lambertian::new_texture(perlin_texture)),
+    )));
+
+    objects
 }
