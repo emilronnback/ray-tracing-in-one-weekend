@@ -1,16 +1,16 @@
 //use std::fmt::format;
 use indicatif::ProgressBar;
-use lib::bvh_node::BVHNode;
 use lib::camera::Camera;
 use lib::error::Error;
 use lib::hittable::Hittable;
 use lib::hittable_list::HittableList;
 use lib::job::Job;
-use lib::material::{Dielectric, Lambertian, Metal};
+use lib::material::{Dielectric, DiffuseLight, Lambertian, Metal};
 use lib::ray::Ray;
 use lib::sphere::Sphere;
 use lib::texture::{CheckerTexture, ImageTexture, NoiseTexture};
 use lib::vec::Vec3;
+use lib::{bvh_node::BVHNode, rectangle::XYRectangle};
 use rand;
 use rand::Rng;
 use rayon::prelude::*;
@@ -51,7 +51,7 @@ fn run() -> Result<(), Error> {
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400;
     let image_height = (image_width as f64 / aspect_ratio) as usize;
-    let samples_per_pixel = 100;
+    let mut samples_per_pixel = 100;
     let max_depth = 50;
 
     // World
@@ -59,30 +59,43 @@ fn run() -> Result<(), Error> {
     let look_from: Vec3;
     let look_at: Vec3;
     let vfov: f64;
+    let background: Vec3;
 
     match 0 {
         1 => {
             world = random_scene();
+            background = Vec3::new(0.7, 0.8, 1.0);
             look_from = Vec3::new(13.0, 2.0, 3.0);
             look_at = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
         }
         2 => {
             world = two_spheres();
+            background = Vec3::new(0.7, 0.8, 1.0);
             look_from = Vec3::new(13.0, 2.0, 3.0);
             look_at = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
         }
         3 => {
             world = two_perlin_spheres();
+            background = Vec3::new(0.7, 0.8, 1.0);
+            look_from = Vec3::new(13.0, 2.0, 3.0);
+            look_at = Vec3::new(0.0, 0.0, 0.0);
+            vfov = 20.0;
+        }
+        4 => {
+            world = earth();
+            background = Vec3::new(0.7, 0.8, 1.0);
             look_from = Vec3::new(13.0, 2.0, 3.0);
             look_at = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
         }
         _ => {
-            world = earth();
-            look_from = Vec3::new(13.0, 2.0, 3.0);
-            look_at = Vec3::new(0.0, 0.0, 0.0);
+            world = simple_light();
+            samples_per_pixel = 400;
+            background = Vec3::new(0.0, 0.0, 0.0);
+            look_from = Vec3::new(26.0, 3.0, 6.0);
+            look_at = Vec3::new(0.0, 2.0, 0.0);
             vfov = 20.0;
         }
     }
@@ -119,6 +132,7 @@ fn run() -> Result<(), Error> {
             work(
                 j,
                 &world,
+                &background,
                 samples_per_pixel,
                 max_depth,
                 image_width,
@@ -146,6 +160,7 @@ fn run() -> Result<(), Error> {
 fn work(
     job: &Job,
     world: &HittableList,
+    background: &Vec3,
     samples_per_pixel: i32,
     max_depth: i32,
     image_width: usize,
@@ -162,7 +177,7 @@ fn work(
                 let u = (i as f64 + rand::random::<f64>()) / (image_width - 1) as f64;
                 let v = (j as f64 + rand::random::<f64>()) / (image_height - 1) as f64;
                 let ray = camera.get_ray(u, v);
-                let color = ray_color(&ray, &*world, max_depth);
+                let color = ray_color(&ray, background, &*world, max_depth);
                 //                println!("color: {}", color);
                 pixel_color += color;
             }
@@ -194,21 +209,21 @@ fn write_color(
     Ok(())
 }
 
-fn ray_color(ray: &Ray, world: &impl Hittable, depth: i32) -> Vec3 {
+fn ray_color(ray: &Ray, background: &Vec3, world: &impl Hittable, depth: i32) -> Vec3 {
     if depth <= 0 {
         return Vec3::new(0.0, 0.0, 0.0);
     }
-    if let Some(hit) = world.hit(ray, 0.001, std::f64::INFINITY) {
-        if let Some((attenuation, scattered)) = hit.material.scatter(ray, &hit) {
-            return attenuation * ray_color(&scattered, world, depth - 1);
-        } else {
-            return Vec3::new(0.0, 0.0, 0.0);
-        }
-    }
 
-    let unit_direction = Vec3::unit_vector(ray.direction);
-    let t = 0.5 * (unit_direction.y + 1.0);
-    (1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0)
+    if let Some(hit) = world.hit(ray, 0.001, std::f64::INFINITY) {
+        let emitted = hit.material.emitted(hit.u, hit.v, &hit.point);
+        if let Some((attenuation, scattered)) = hit.material.scatter(ray, &hit) {
+            return emitted + attenuation * ray_color(&scattered, background, world, depth - 1);
+        } else {
+            return emitted;
+        }
+    } else {
+        return *background;
+    }
 }
 #[allow(dead_code)]
 fn scene1() -> HittableList {
@@ -364,4 +379,39 @@ fn earth() -> HittableList {
     earth.add(globe);
 
     earth
+}
+
+fn simple_light() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let perlin_texture = Arc::new(NoiseTexture::new_scaled(4.0));
+    objects.add(Arc::new(Sphere::new(
+        Vec3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Arc::new(Lambertian::new_texture(perlin_texture.clone())),
+    )));
+
+    objects.add(Arc::new(Sphere::new(
+        Vec3::new(0.0, 2.0, 0.0),
+        2.0,
+        Arc::new(Lambertian::new_texture(perlin_texture)),
+    )));
+
+    let diffuse_light = Arc::new(DiffuseLight::new_color(Vec3::new(4.0, 4.0, 4.0)));
+    objects.add(Arc::new(XYRectangle::new(
+        3.0,
+        5.0,
+        1.0,
+        3.0,
+        -2.0,
+        diffuse_light.clone(),
+    )));
+
+    objects.add(Arc::new(Sphere::new(
+        Vec3::new(0.0, 8.0, 0.0),
+        2.0,
+        diffuse_light,
+    )));
+
+    objects
 }
