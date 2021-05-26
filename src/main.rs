@@ -9,7 +9,7 @@ use lib::job::Job;
 use lib::material::{Dielectric, Lambertian, Metal};
 use lib::ray::Ray;
 use lib::sphere::Sphere;
-use lib::texture::{CheckerTexture, NoiseTexture};
+use lib::texture::{CheckerTexture, ImageTexture, NoiseTexture};
 use lib::vec::Vec3;
 use rand;
 use rand::Rng;
@@ -73,8 +73,14 @@ fn run() -> Result<(), Error> {
             look_at = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
         }
-        _ => {
+        3 => {
             world = two_perlin_spheres();
+            look_from = Vec3::new(13.0, 2.0, 3.0);
+            look_at = Vec3::new(0.0, 0.0, 0.0);
+            vfov = 20.0;
+        }
+        _ => {
+            world = earth();
             look_from = Vec3::new(13.0, 2.0, 3.0);
             look_at = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
@@ -333,7 +339,7 @@ fn two_spheres() -> HittableList {
 fn two_perlin_spheres() -> HittableList {
     let mut objects = HittableList::new();
 
-    let perlin_texture = Arc::new(NoiseTexture::new());
+    let perlin_texture = Arc::new(NoiseTexture::new_scaled(4.0));
     objects.add(Arc::new(Sphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -347,4 +353,15 @@ fn two_perlin_spheres() -> HittableList {
     )));
 
     objects
+}
+
+fn earth() -> HittableList {
+    let mut earth = HittableList::new();
+
+    let earth_texture = Arc::new(ImageTexture::new_from_file("world.png"));
+    let earth_surface = Arc::new(Lambertian::new_texture(earth_texture));
+    let globe = Arc::new(Sphere::new(Vec3::new(0.0, 0.0, 0.0), 2.0, earth_surface));
+    earth.add(globe);
+
+    earth
 }

@@ -1,6 +1,6 @@
 use rand::Rng;
 use std::fmt::{self, Display};
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub};
 
 #[derive(Default, Debug, Copy, Clone, PartialEq)]
 pub struct Vec3 {
@@ -172,6 +172,14 @@ impl Mul<Vec3> for f64 {
             y: vec.y * self,
             z: vec.z * self,
         }
+    }
+}
+
+impl MulAssign<f64> for Vec3 {
+    fn mul_assign(&mut self, f: f64) {
+        self.x *= f;
+        self.y *= f;
+        self.z *= f;
     }
 }
 
