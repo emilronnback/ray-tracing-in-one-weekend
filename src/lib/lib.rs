@@ -7,6 +7,7 @@ pub mod hittable;
 pub mod hittable_list;
 pub mod job;
 pub mod material;
+pub mod mybox;
 pub mod perlin;
 pub mod ray;
 pub mod rectangle;

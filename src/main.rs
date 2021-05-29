@@ -1,16 +1,18 @@
 //use std::fmt::format;
 use indicatif::ProgressBar;
+use lib::bvh_node::BVHNode;
 use lib::camera::Camera;
 use lib::error::Error;
-use lib::hittable::Hittable;
+use lib::hittable::{Hittable, RotateY, Translate};
 use lib::hittable_list::HittableList;
 use lib::job::Job;
 use lib::material::{Dielectric, DiffuseLight, Lambertian, Metal};
+use lib::mybox::MyBox;
 use lib::ray::Ray;
+use lib::rectangle::{XYRectangle, XZRectangle, YZRectangle};
 use lib::sphere::Sphere;
 use lib::texture::{CheckerTexture, ImageTexture, NoiseTexture};
 use lib::vec::Vec3;
-use lib::{bvh_node::BVHNode, rectangle::XYRectangle};
 use rand;
 use rand::Rng;
 use rayon::prelude::*;
@@ -48,9 +50,8 @@ impl Pixel {
 
 fn run() -> Result<(), Error> {
     // Image
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400;
-    let image_height = (image_width as f64 / aspect_ratio) as usize;
+    let mut aspect_ratio = 16.0 / 9.0;
+    let mut image_width = 400;
     let mut samples_per_pixel = 100;
     let max_depth = 50;
 
@@ -90,7 +91,7 @@ fn run() -> Result<(), Error> {
             look_at = Vec3::new(0.0, 0.0, 0.0);
             vfov = 20.0;
         }
-        _ => {
+        5 => {
             world = simple_light();
             samples_per_pixel = 400;
             background = Vec3::new(0.0, 0.0, 0.0);
@@ -98,7 +99,19 @@ fn run() -> Result<(), Error> {
             look_at = Vec3::new(0.0, 2.0, 0.0);
             vfov = 20.0;
         }
+        _ => {
+            world = cornell_box();
+            aspect_ratio = 1.0;
+            image_width = 600;
+            samples_per_pixel = 200;
+            background = Vec3::new(0.0, 0.0, 0.0);
+            look_from = Vec3::new(278.0, 278.0, -800.0);
+            look_at = Vec3::new(278.0, 278.0, 0.0);
+            vfov = 40.0;
+        }
     }
+
+    let image_height = (image_width as f64 / aspect_ratio) as usize;
 
     // Camera
     let vup = Vec3::new(0.0, 1.0, 0.0);
@@ -412,6 +425,67 @@ fn simple_light() -> HittableList {
         2.0,
         diffuse_light,
     )));
+
+    objects
+}
+
+fn cornell_box() -> HittableList {
+    let mut objects = HittableList::new();
+
+    let red = Arc::new(Lambertian::new_color(Vec3::new(0.64, 0.05, 0.05)));
+    let white = Arc::new(Lambertian::new_color(Vec3::new(0.73, 0.73, 0.73)));
+    let green = Arc::new(Lambertian::new_color(Vec3::new(0.12, 0.45, 0.15)));
+    let light = Arc::new(DiffuseLight::new_color(Vec3::new(15.0, 15.0, 15.0)));
+
+    objects.add(Arc::new(YZRectangle::new(
+        0.0, 555.0, 0.0, 555.0, 555.0, green,
+    )));
+    objects.add(Arc::new(YZRectangle::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    objects.add(Arc::new(XZRectangle::new(
+        213.0, 343.0, 227.0, 332.0, 554.0, light,
+    )));
+    objects.add(Arc::new(XZRectangle::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        0.0,
+        white.clone(),
+    )));
+    objects.add(Arc::new(XZRectangle::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+    objects.add(Arc::new(XYRectangle::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+
+    let box1 = Arc::new(MyBox::new(
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(165.0, 330.0, 165.0),
+        white.clone(),
+    ));
+    let box1 = Arc::new(RotateY::new(box1, 15.0));
+    let box1 = Arc::new(Translate::new(box1, Vec3::new(265.0, 0.0, 295.0)));
+    objects.add(box1);
+
+    let box2 = Arc::new(MyBox::new(
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(165.0, 165.0, 165.0),
+        white,
+    ));
+    let box2 = Arc::new(RotateY::new(box2, -18.0));
+    let box2 = Arc::new(Translate::new(box2, Vec3::new(130.0, 0.0, 65.0)));
+    objects.add(box2);
 
     objects
 }

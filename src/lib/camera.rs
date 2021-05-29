@@ -30,7 +30,6 @@ impl Camera {
         let h = (theta / 2.0).tan();
         let viewport_height = 2.0 * h;
         let viewport_width = aspect_ratio * viewport_height;
-
         let w = Vec3::unit_vector(look_from - look_at);
         let u = Vec3::unit_vector(Vec3::cross(vup, w));
         let v = Vec3::cross(w, u);
