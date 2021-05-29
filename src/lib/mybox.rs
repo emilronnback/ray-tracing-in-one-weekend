@@ -73,7 +73,7 @@ impl Hittable for MyBox {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         self.sides.hit(ray, t_min, t_max)
     }
-    fn bounding_box(&self, time_start: f64, time_end: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time_start: f64, _time_end: f64) -> Option<AABB> {
         Some(AABB::new(self.box_min, self.box_max))
     }
 }

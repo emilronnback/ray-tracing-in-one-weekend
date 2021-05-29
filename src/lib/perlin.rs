@@ -96,7 +96,7 @@ impl Perlin {
         let mut temp_p = *p;
         let mut weight = 1.0;
 
-        for i in 0..depth {
+        for _ in 0..depth {
             accumulator += weight * self.noise(&temp_p);
             weight *= 0.5;
             temp_p *= 2.0;

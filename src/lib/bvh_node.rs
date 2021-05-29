@@ -15,15 +15,6 @@ pub struct BVHNode {
 }
 
 impl BVHNode {
-    /*
-    pub fn new() -> BVHNode {
-        BVHNode {
-            bounding: AABB::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0)),
-            left: None,
-            right: None,
-        }
-    }
-    */
     pub fn new_hittablelist(list: &HittableList, time_start: f64, time_end: f64) -> BVHNode {
         BVHNode::new_vector(&list.objects, 0, list.objects.len(), time_start, time_end)
     }
@@ -39,7 +30,6 @@ impl BVHNode {
 
         let axes: Vec<fn(&Vec3) -> f64> = vec![|v: &Vec3| v.x, |v: &Vec3| v.y, |v: &Vec3| v.z];
         let axis_to_compare = axes.choose(&mut rand::thread_rng()).unwrap();
-
         let object_span = end - start;
 
         let (left, right) = match object_span {
@@ -74,14 +64,14 @@ impl BVHNode {
         }
         BVHNode {
             bounding: AABB::surrounding_box(&left_box.unwrap(), &right_box.unwrap()),
-            left: left,
-            right: right,
+            left,
+            right,
         }
     }
 
     fn compare(a: &dyn Hittable, b: &dyn Hittable, axis_to_compare: fn(&Vec3) -> f64) -> Ordering {
-        let box_a = a.bounding_box(0.0, 0.0);
-        let box_b = b.bounding_box(0.0, 0.0);
+        let box_a = a.bounding_box(0.0, 1.0);
+        let box_b = b.bounding_box(0.0, 1.0);
         match (box_a, box_b) {
             (Some(a), Some(b)) => axis_to_compare(&a.min)
                 .partial_cmp(&axis_to_compare(&b.min))
@@ -98,18 +88,18 @@ impl Hittable for BVHNode {
         if !self.bounding.hit(ray, t_min, t_max) {
             return None;
         }
-        if let Some(l) = self.left.hit(ray, t_min, t_max) {
-            let right_hit = self.right.hit(ray, t_min, l.t);
-            if right_hit.is_some() {
-                return right_hit;
+
+        if let Some(left_hit) = self.left.hit(ray, t_min, t_max) {
+            if let Some(right_hit) = self.right.hit(ray, t_min, left_hit.t) {
+                return Some(right_hit);
             }
-            return Some(l.clone());
+            return Some(left_hit);
         } else {
-            None
+            self.right.hit(ray, t_min, t_max)
         }
     }
 
-    fn bounding_box(&self, time_start: f64, time_end: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time_start: f64, _time_end: f64) -> Option<AABB> {
         Some(self.bounding)
     }
 }

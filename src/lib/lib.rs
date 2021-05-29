@@ -2,6 +2,7 @@
 pub mod aabb;
 pub mod bvh_node;
 pub mod camera;
+pub mod constant_medium;
 pub mod error;
 pub mod hittable;
 pub mod hittable_list;

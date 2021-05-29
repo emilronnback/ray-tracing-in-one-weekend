@@ -49,7 +49,7 @@ impl Hittable for XYRectangle {
         Some(hit_record)
     }
 
-    fn bounding_box(&self, time_start: f64, time_end: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time_start: f64, _time_end: f64) -> Option<AABB> {
         Some(AABB::new(
             Vec3::new(self.x0, self.y0, self.k - 0.0001),
             Vec3::new(self.x1, self.y1, self.k + 0.0001),
@@ -101,7 +101,7 @@ impl Hittable for XZRectangle {
         Some(hit_record)
     }
 
-    fn bounding_box(&self, time_start: f64, time_end: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time_start: f64, _time_end: f64) -> Option<AABB> {
         Some(AABB::new(
             Vec3::new(self.x0, self.k - 0.0001, self.z0),
             Vec3::new(self.x1, self.k + 0.0001, self.z1),
@@ -153,7 +153,7 @@ impl Hittable for YZRectangle {
         Some(hit_record)
     }
 
-    fn bounding_box(&self, time_start: f64, time_end: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time_start: f64, _time_end: f64) -> Option<AABB> {
         Some(AABB::new(
             Vec3::new(self.k - 0.0001, self.y0, self.z0),
             Vec3::new(self.k + 0.0001, self.y1, self.z1),

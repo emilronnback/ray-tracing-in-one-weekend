@@ -161,7 +161,7 @@ impl Hittable for RotateY {
         }
     }
 
-    fn bounding_box(&self, time_start: f64, time_end: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time_start: f64, _time_end: f64) -> Option<AABB> {
         self.bounding_box
     }
 }

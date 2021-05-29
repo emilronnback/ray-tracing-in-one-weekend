@@ -23,7 +23,7 @@ impl SolidColor {
 }
 
 impl Texture for SolidColor {
-    fn value(&self, u: f64, v: f64, p: &Vec3) -> Vec3 {
+    fn value(&self, _u: f64, _v: f64, _p: &Vec3) -> Vec3 {
         self.color_value
     }
 }
@@ -77,11 +77,7 @@ impl NoiseTexture {
 }
 
 impl Texture for NoiseTexture {
-    fn value(&self, u: f64, v: f64, p: &Vec3) -> Vec3 {
-        /*
-        let pp = *p * self.scale;
-        Vec3::new(1.0, 1.0, 1.0) * self.noise.turb(&pp, 7)
-        */
+    fn value(&self, _u: f64, _v: f64, p: &Vec3) -> Vec3 {
         Vec3::new(1.0, 1.0, 1.0)
             * 0.5
             * (1.0 + (p.z * self.scale + 10.0 * self.noise.turb(p, 7)).sin())
@@ -134,7 +130,7 @@ impl ImageTexture {
 }
 
 impl Texture for ImageTexture {
-    fn value(&self, u: f64, v: f64, p: &Vec3) -> Vec3 {
+    fn value(&self, u: f64, v: f64, _p: &Vec3) -> Vec3 {
         if self.data.is_empty() {
             return Vec3::new(0.0, 1.0, 1.0);
         }

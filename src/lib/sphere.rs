@@ -7,9 +7,9 @@ use std::f64::consts::PI;
 use std::sync::Arc;
 
 pub struct Sphere {
+    radius: f64,
     center_start: Vec3,
     center_end: Vec3,
-    radius: f64,
     time_start: f64,
     time_end: f64,
     material: Arc<dyn Material>,
@@ -27,17 +27,17 @@ impl Sphere {
         }
     }
     pub fn new_moving(
+        radius: f64,
         center_start: Vec3,
         center_end: Vec3,
-        radius: f64,
         time_start: f64,
         time_end: f64,
         material: Arc<dyn Material>,
     ) -> Self {
         Sphere {
+            radius,
             center_start,
             center_end,
-            radius,
             time_start,
             time_end,
             material,
@@ -97,7 +97,7 @@ impl Hittable for Sphere {
         (hit_record.u, hit_record.v) = Sphere::get_sphere_uv(&outward_normal);
         Some(hit_record)
     }
-    fn bounding_box(&self, time_start: f64, time_end: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time_start: f64, _time_end: f64) -> Option<AABB> {
         let box_start = AABB::new(
             self.center_start - Vec3::new(self.radius, self.radius, self.radius),
             self.center_start + Vec3::new(self.radius, self.radius, self.radius),

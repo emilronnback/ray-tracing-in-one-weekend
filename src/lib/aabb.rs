@@ -1,5 +1,6 @@
 use crate::ray::Ray;
 use crate::vec::Vec3;
+use std::fmt;
 use std::mem::swap;
 
 #[derive(Copy, Clone)]
@@ -61,5 +62,14 @@ impl AABB {
             box0.max.z.max(box1.max.z),
         );
         AABB::new(small, big)
+    }
+}
+
+impl fmt::Debug for AABB {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AABB")
+            .field("min", &self.min)
+            .field("max", &self.max)
+            .finish()
     }
 }
