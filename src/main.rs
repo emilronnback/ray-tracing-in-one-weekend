@@ -119,8 +119,8 @@ fn run() -> Result<(), Error> {
         }
         _ => {
             world = final_scene();
-            aspect_ratio = 1.0;
-            image_width = 800;
+            aspect_ratio = 16.0 / 9.0;
+            image_width = 1920;
             samples_per_pixel = 10000;
             background = Vec3::new(0.0, 0.0, 0.0);
             look_from = Vec3::new(478.0, 278.0, -600.0);

@@ -93,8 +93,6 @@ pub struct ImageTexture {
 }
 
 impl ImageTexture {
-    //const BYTES_PER_PIXEL: usize = 3;
-
     pub fn new() -> Self {
         ImageTexture {
             data: Vec::new(),
@@ -106,13 +104,7 @@ impl ImageTexture {
     }
 
     pub fn new_from_file(filename: &str) -> Self {
-        //let components_per_pixel = ImageTexture::BYTES_PER_PIXEL;
-
         let image = if let LoadResult::ImageU8(image) = stb_image::image::load(filename) {
-            eprintln!(
-                "Loaded {}, width: {}, height: {}, depth: {}, ",
-                filename, image.width, image.height, image.depth
-            );
             image
         } else {
             eprintln!("Unable to load image file");
